@@ -20,25 +20,31 @@ class PendingGames:
 
     async def get_by_ix(self, room, ix):
         async with self.lk:
-            if ix in self.pending:
-                try:
-                    x = self.pending[ix]
-                    del self.pending[ix]
-                    return x
-                except KeyError:
-                    return None
+            if room not in self.pending:
+                return None
+            pending_room = self.pending[room]
+            if not pending_room:
+                return None
+            if ix not in pending_room:
+                return None
+            x = pending_room[ix]
+            del pending_room[ix]
+            if not pending_room:
+                del self.pending[room]
+            return x
+
 
     async def get_pending(self, room):
         async with self.lk:
             if room not in self.pending:
                 return None
-            proom = self.pending[room]
-            if not proom:
+            pending_room = self.pending[room]
+            if not pending_room:
                 return None
-            ix = next(iter(proom.keys()))
-            x = proom[ix]
-            del proom[ix]
-            if not proom:
+            ix = next(iter(pending_room.keys()))
+            x = pending_room[ix]
+            del pending_room[ix]
+            if not pending_room:
                 del self.pending[room]
             return x
 
@@ -55,7 +61,7 @@ async def handle_player(player_header, player_reader, player_writer):
     p = await pg.get_by_ix(room, ix)
     if not p:
         return
-    # print('discarding connection', player_header)
+    logging.error(f'discarding connection {player_header}')
     player_writer.close()
 
 async def pipe(reader, writer, timeout=30):

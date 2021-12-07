@@ -33,6 +33,8 @@ class PendingGames:
             if room not in self.pending:
                 return None
             proom = self.pending[room]
+            if not proom:
+                return None
             ix = next(iter(proom.keys()))
             x = proom[ix]
             del proom[ix]

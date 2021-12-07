@@ -6,8 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "127.0.0.1:7778:7778"
+      - "0.0.0.0:7777:7777"
     environment:
       ADDR: "0.0.0.0"
-      PORT: "7778"
+      PORT: "7777"
     restart: always

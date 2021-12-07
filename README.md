@@ -24,7 +24,7 @@ Someone has to be host to run luxai runner. `placeholder.py` is a placeholder ag
 
 usage for one-time runs (you might want to run host in `while True` loop):
 ```
-ROOM_NAME="my_matchmaking_room" MMPORT=7778 lux-ai-2021 ./client/placeholder.py ./client/placeholder.py --maxtime 1000000
+ROOM_NAME="my_matchmaking_room" MMSRV=127.0.0.1 MMPORT=7778 lux-ai-2021 ./client/placeholder.py ./client/placeholder.py --maxtime 1000000
 ```
 or 
 ```

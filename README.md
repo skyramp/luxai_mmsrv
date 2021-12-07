@@ -21,7 +21,11 @@ usage (assuming agent is main.py): `python ./client/wrapper.py --name "agent_nam
 Someone has to be host to run luxai runner. `placeholder.py` is a placeholder agent that would communicate with client agent via server.
 
 usage:
-`ROOM_NAME="my_matchmaking_room" MMPORT=7778 lux-ai-2021 ./client/placeholder.py ./client/placeholder.py --maxtime 1000000`
+```
+ROOM_NAME="my_matchmaking_room" MMPORT=7778 lux-ai-2021 ./client/placeholder.py ./client/placeholder.py --maxtime 1000000
+```
 or 
-`PLAYER_NAME="test" ROOM_NAME="my_matchmaking_room" MMPORT=7778 lux-ai-2021 ./client/placeholder.py my_another_agent.py --maxtime 1000000`
+```
+PLAYER_NAME="test" ROOM_NAME="my_matchmaking_room" MMSRV=127.0.0.1 MMPORT=7778 lux-ai-2021 ./client/placeholder.py my_another_agent.py --maxtime 1000000
+```
 

@@ -1,36 +1,39 @@
 # luxai 2021 client-server matchmaking tools
 
-some tools for matchmaking using remote server and without need to share agents code
+Some tools for matchmaking using remote server and without need to share agents code.
+
+## How it works
+Client wrapper runs your agent, waits for observations from placeholder agent and sends actions back.
+
+Placeholder is just a dummy agent that reads observations from luxai runner, pushes it to remote client and waits for actions from remote client. You can use placeholder agent as you use any other agent in while locallt testing your bots.
+ 
+## Installing
+Clone the repo somewhere (for example `~/luxai_mmsrv`)
 
 ## How to use
 
-1. Someone need to start server and share IP/port.
-2. You need to run your agent with client wrapper
-3. You might want to start luxai host runner to play against someone else and get the replay
-
-
-## Server
-
-usage: `ADDR=127.0.0.1 PORT=7777 python ./server/server.py`
-
-## Client wrapper
-
-usage (assuming your agent is main.py): `python ./client/wrapper.py --name "agent_name" --room "my_matchmaking_room" --srv 127.0.0.1 --port 7777 --cmd "python main.py"`
-
-wrapper will run your agent indefinitely, until killed
-
-## Host
-Someone has to be host to run luxai runner. `placeholder.py` is a placeholder agent that would communicate with some client agent in the specified room. 
-
-usage for one-time runs (you might want to run host in `while True` loop):
+### You run the client wrapper and someone else runs the host
+1. Select some unique room name, for example `my_matchmaking_room`
+2. Assuming your bot is `main.py`, run following (don't forget to replace server address in --srv option)
 ```
-ROOM_NAME="my_matchmaking_room" MMSRV=127.0.0.1 MMPORT=7778 lux-ai-2021 ./client/placeholder.py ./client/placeholder.py --maxtime 1000000
+python ~/luxai_mmsrv/client/wrapper.py --name "your_agent_name" --room "my_matchmaking_room" --srv 127.0.0.1 --port 7777 --cmd "python main.py"
 ```
-or 
+3. While client wrapper is working, you will be running your own bot against another players, but you would not be able to get replays.
+
+### You run the host and someone else runs the client wrapper 
+1. Ask someone you want to play with to be client and choose room name (for example `my_matchmaking_room`)
+2. Assuming your bot is `main.py`, run following (don't forget to replace server address in MMSRV env variable)
 ```
-PLAYER_NAME="test" ROOM_NAME="my_matchmaking_room" MMSRV=127.0.0.1 MMPORT=7778 lux-ai-2021 ./client/placeholder.py my_another_agent.py --maxtime 1000000
+ROOM_NAME="my_matchmaking_room" MMSRV=127.0.0.1 MMPORT=7777 lux-ai-2021 ~/luxai_mmsrv/client/placeholder.py main.py --maxtime 10000
 ```
-or in tournament mode
-```
-PLAYER_NAME="test" ROOM_NAME="my_matchmaking_room" MMSRV=127.0.0.1 MMPORT=7778 lux-ai-2021 ./client/placeholder.py my_another_agent.py --maxtime 1000000 --tournament
-```
+3. `placeholder.py` would select any bot from the room `my_matchmaking_room` on server, and you will run match against it. 
+   This will run single match against some other player. 
+   You might want to change other lux-ai-2021 options (like tune replay saving options, add tournament, rankSystem and so on). 
+   Large max time might be useful if all client bots are busy (one client bot process runs one game at a time)
+
+**CAUTION:** don't put your own client and host in same room. Server would pick *any* client bot from the room, and it might be as well your own bot running as client.
+
+### Server
+If you want to run server by yourself - better look into dockerfiles and sources.
+
+usage: `ADDR=0.0.0.0 PORT=7777 python ./server/server.py`

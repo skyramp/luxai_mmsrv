@@ -1,17 +1,39 @@
 import asyncio
+import json
 import logging
 import signal
-import json
-import sys
+import struct
+import zlib
+from asyncio import IncompleteReadError
+
 
 class BrokenPipeException(Exception):
     pass
 
-async def pipe(reader, writer, timeout=60):
+async def compress_pipe(reader, writer, timeout=60):
     try:
         while not reader.at_eof():
-            writer.write(await asyncio.wait_for(reader.read(2048), timeout))
+            data = await asyncio.wait_for(reader.read(2048*4), timeout)
+            data_comp = zlib.compress(data)
+            hdr = struct.pack("I", len(data_comp))
+            writer.write(hdr)
+            writer.write(data_comp)
             await asyncio.wait_for(writer.drain(), timeout)
+    except IncompleteReadError:
+        logging.error("connection closed")
+    finally:
+        writer.close()
+
+async def decompress_pipe(reader, writer, timeout=60):
+    try:
+        while not reader.at_eof():
+            header = await asyncio.wait_for(reader.readexactly(4), timeout)
+            data_size = struct.unpack("I", header)[0]
+            data = await asyncio.wait_for(reader.readexactly(data_size), timeout)
+            writer.write(zlib.decompress(data))
+            await asyncio.wait_for(writer.drain(), timeout)
+    except IncompleteReadError:
+        logging.error("connection closed")
     finally:
         writer.close()
 
@@ -54,8 +76,8 @@ async def run_client(name, args):
     )
 
     try:
-        pipe1 = pipe(agent_process.stdout, cli_writer, timeout=30)
-        pipe2 = pipe(cli_reader, agent_process.stdin, timeout=30)
+        pipe1 = compress_pipe(agent_process.stdout, cli_writer, timeout=30)
+        pipe2 = decompress_pipe(cli_reader, agent_process.stdin, timeout=30)
         await asyncio.gather(pipe1, pipe2)
     except Exception as exc:
         logging.exception(f"{name}: exception {repr(exc)}")

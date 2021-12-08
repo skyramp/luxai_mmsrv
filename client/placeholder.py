@@ -1,8 +1,11 @@
 import asyncio
 import json
+import logging
 import os
+import struct
 import sys
-
+import zlib
+from asyncio import IncompleteReadError
 
 async def connect_stdin_stdout():
     loop = asyncio.get_event_loop()
@@ -13,14 +16,35 @@ async def connect_stdin_stdout():
     writer = asyncio.StreamWriter(w_transport, w_protocol, reader, loop)
     return reader, writer
 
-async def pipe(reader, writer):
+async def compress_pipe(reader, writer, timeout=60):
     try:
         while not reader.at_eof():
-            writer.write(await reader.read(2048))
+            data = await asyncio.wait_for(reader.read(2048*4), timeout)
+            data_comp = zlib.compress(data, level=9)
+            hdr = struct.pack("I", len(data_comp))
+            writer.write(hdr)
+            writer.write(data_comp)
+            await asyncio.wait_for(writer.drain(), timeout)
+    except IncompleteReadError:
+        logging.error("connection closed")
     finally:
-        raise Exception("pipe died")
+        writer.close()
+
+async def decompress_pipe(reader, writer, timeout=60):
+    try:
+        while not reader.at_eof():
+            header = await asyncio.wait_for(reader.readexactly(4), timeout)
+            data_size = struct.unpack("I", header)[0]
+            data = await asyncio.wait_for(reader.readexactly(data_size), timeout)
+            writer.write(zlib.decompress(data))
+            await asyncio.wait_for(writer.drain(), timeout)
+    except IncompleteReadError:
+        logging.error("connection closed")
+    finally:
+        writer.close()
 
 async def main():
+    logging.basicConfig(level=logging.DEBUG)
     PLAYER_NAME = os.environ.get("PLAYER_NAME", "placeholder")
     ROOM_NAME = os.environ.get("ROOM_NAME", "default")
     MMSRV = os.environ.get("MMSRV", "127.0.0.1")
@@ -28,14 +52,11 @@ async def main():
 
     reader, writer = await connect_stdin_stdout()
 
-    player_id = (await reader.readline()).decode()
-    map_size = (await reader.readline()).decode()
-
     cli_reader, cli_writer = None, None
     while not cli_reader:
         try:
             cli_reader, cli_writer = await asyncio.open_connection(MMSRV, MMPORT)
-            cli_writer.write(json.dumps(dict(mode='host', player_name = PLAYER_NAME, room = ROOM_NAME, player_id=player_id, map_size=map_size)).encode() + b'\n')
+            cli_writer.write(json.dumps(dict(mode='host', player_name = PLAYER_NAME, room = ROOM_NAME)).encode() + b'\n')
             await asyncio.wait_for(cli_writer.drain(), 30)
             match_info = await cli_reader.readline()
             if not match_info:
@@ -48,13 +69,9 @@ async def main():
             cli_reader, cli_writer = None, None
             continue
 
-    cli_writer.write(player_id.encode())
-    cli_writer.write(map_size.encode())
-    await cli_writer.drain()
-
     try:
-        pipe1 = pipe(reader, cli_writer)
-        pipe2 = pipe(cli_reader, writer)
+        pipe1 = compress_pipe(reader, cli_writer)
+        pipe2 = decompress_pipe(cli_reader, writer)
         await asyncio.gather(pipe1, pipe2)
         print('match finished', file=sys.stderr)
     except Exception as exc:

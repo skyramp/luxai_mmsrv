@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM pypy:3.8
 COPY ./server /app/server
 EXPOSE 7777
-CMD python /app/server/server.py
+CMD pypy /app/server/server.py

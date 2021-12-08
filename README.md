@@ -64,7 +64,7 @@ usage: runner.py [-h] --player PLAYER [--room ROOM] [--srv SRV] [--port PORT] --
 optional arguments:
   -h, --help         show this help message and exit
   --player PLAYER    player name
-  --room ROOM        room name
+  --room ROOM        room name (default room name is 'default')
   --srv SRV          server addr (default 127.0.0.1)
   --port PORT        server port (default 7777)
   --cmd CMD          agent cmd line

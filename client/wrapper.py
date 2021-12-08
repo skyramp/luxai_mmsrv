@@ -67,7 +67,7 @@ async def prepare_connection(name, player_name, room, srv, port):
 
 
 async def run_client(name, args):
-    cli_reader, cli_writer = await prepare_connection(name, args.name, args.room, args.srv, args.port)
+    cli_reader, cli_writer = await prepare_connection(name, args.player, args.room, args.srv, args.port)
 
     agent_process = await asyncio.create_subprocess_shell(
         args.cmd,
@@ -101,7 +101,7 @@ async def run_client_forever(name, args):
 async def main(args):
     tasks = []
     for i in range(args.workers):
-        tasks += [asyncio.create_task(run_client_forever(f'{args.name}[{i}]', args))]
+        tasks += [asyncio.create_task(run_client_forever(f'{args.player}[{i}]', args))]
     await asyncio.gather(*tasks)
 
 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", type=str, required=True, help="player name")
+    parser.add_argument("--player", type=str, required=True, help="player name")
     parser.add_argument("--room", type=str, default="default", help="room name")
     parser.add_argument("--srv", type=str, default="127.0.0.1", help="server addr")
     parser.add_argument("--port", type=int, default=7777, help="server port")

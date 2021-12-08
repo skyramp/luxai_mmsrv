@@ -45,10 +45,10 @@ async def decompress_pipe(reader, writer, timeout=60):
 
 async def main():
     logging.basicConfig(level=logging.DEBUG)
-    PLAYER_NAME = os.environ.get("PLAYER_NAME", "placeholder")
-    ROOM_NAME = os.environ.get("ROOM_NAME", "default")
-    MMSRV = os.environ.get("MMSRV", "127.0.0.1")
-    MMPORT = int(os.environ.get("MMPORT", "7777"))
+    PLAYER_NAME = os.environ.get("PLAYER", "placeholder")
+    ROOM_NAME = os.environ.get("ROOM", "default")
+    MMSRV = os.environ.get("SRV", "127.0.0.1")
+    MMPORT = int(os.environ.get("PORT", "7777"))
 
     reader, writer = await connect_stdin_stdout()
 

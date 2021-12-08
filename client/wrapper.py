@@ -14,14 +14,15 @@ async def compress_pipe(reader, writer, timeout=60):
     try:
         while not reader.at_eof():
             data = await asyncio.wait_for(reader.read(2048*4), timeout)
-            data_comp = zlib.compress(data)
+            data_comp = zlib.compress(data, level=9)
             hdr = struct.pack("I", len(data_comp))
             writer.write(hdr)
             writer.write(data_comp)
             await asyncio.wait_for(writer.drain(), timeout)
-    except IncompleteReadError:
-        logging.error("connection closed")
+    except (IncompleteReadError, BrokenPipeError):
+        logging.error("connection broken")
     finally:
+        logging.warning("closing connection")
         writer.close()
 
 async def decompress_pipe(reader, writer, timeout=60):
@@ -32,10 +33,12 @@ async def decompress_pipe(reader, writer, timeout=60):
             data = await asyncio.wait_for(reader.readexactly(data_size), timeout)
             writer.write(zlib.decompress(data))
             await asyncio.wait_for(writer.drain(), timeout)
-    except IncompleteReadError:
-        logging.error("connection closed")
+    except (IncompleteReadError, BrokenPipeError):
+        logging.error("connection broken")
     finally:
+        logging.warning("closing connection")
         writer.close()
+
 
 async def prepare_connection(name, player_name, room, srv, port):
     timeout = 30

@@ -25,9 +25,10 @@ async def compress_pipe(reader, writer, timeout=60):
             writer.write(hdr)
             writer.write(data_comp)
             await asyncio.wait_for(writer.drain(), timeout)
-    except IncompleteReadError:
-        logging.error("connection closed")
+    except (IncompleteReadError, BrokenPipeError):
+        logging.error("connection broken")
     finally:
+        logging.warning("closing connection")
         writer.close()
 
 async def decompress_pipe(reader, writer, timeout=60):
@@ -38,9 +39,10 @@ async def decompress_pipe(reader, writer, timeout=60):
             data = await asyncio.wait_for(reader.readexactly(data_size), timeout)
             writer.write(zlib.decompress(data))
             await asyncio.wait_for(writer.drain(), timeout)
-    except IncompleteReadError:
-        logging.error("connection closed")
+    except (IncompleteReadError, BrokenPipeError):
+        logging.error("connection broken")
     finally:
+        logging.warning("closing connection")
         writer.close()
 
 async def main():
@@ -61,11 +63,11 @@ async def main():
             match_info = await cli_reader.readline()
             if not match_info:
                 raise Exception(f"no players in room '{ROOM_NAME}'")
-            print('match', match_info, file=sys.stderr)
+            print(f'match {match_info.decode()}', file=sys.stderr)
             break
         except Exception as exc:
             await asyncio.sleep(1)
-            print("exc", exc, file=sys.stderr)
+            print(f"exc {repr(exc)}", file=sys.stderr)
             cli_reader, cli_writer = None, None
             continue
 

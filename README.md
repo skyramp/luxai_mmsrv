@@ -68,7 +68,7 @@ optional arguments:
   --srv SRV          server addr (default 127.0.0.1)
   --port PORT        server port (default 7777)
   --cmd CMD          agent cmd line
-  --workers WORKERS  max concurrent games
+  --workers WORKERS  max concurrent games (default 1)
 ```
 
 ### placeholder agent

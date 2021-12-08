@@ -18,7 +18,6 @@ async def pipe(reader, writer):
         while not reader.at_eof():
             writer.write(await reader.read(2048))
     finally:
-        print("pipe died", file=sys.stderr)
         raise Exception("pipe died")
 
 async def main():
@@ -37,10 +36,10 @@ async def main():
         try:
             cli_reader, cli_writer = await asyncio.open_connection(MMSRV, MMPORT)
             cli_writer.write(json.dumps(dict(mode='host', player_name = PLAYER_NAME, room = ROOM_NAME, player_id=player_id, map_size=map_size)).encode() + b'\n')
-            await cli_writer.drain()
+            await asyncio.wait_for(cli_writer.drain(), 30)
             match_info = await cli_reader.readline()
             if not match_info:
-                raise Exception("no players")
+                raise Exception(f"no players in room '{ROOM_NAME}'")
             print('match', match_info, file=sys.stderr)
             break
         except Exception as exc:
@@ -57,8 +56,11 @@ async def main():
         pipe1 = pipe(reader, cli_writer)
         pipe2 = pipe(cli_reader, writer)
         await asyncio.gather(pipe1, pipe2)
+        print('match finished', file=sys.stderr)
+    except Exception as exc:
+        print(f"exception: {repr(exc)}", file=sys.stderr)
     finally:
-        print("Close the connection", file=sys.stderr)
+        print("closing connection", file=sys.stderr)
         cli_writer.close()
 
 if __name__ == "__main__":
